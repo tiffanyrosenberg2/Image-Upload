@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Search</title>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI/tTQa0l3n8BO+YbdlR7dI5UqZXdQJ0I5l5p5SM=" crossorigin="anonymous"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://kit.fontawesome.com/02fc9bc63a.js" crossorigin="anonymous"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          fetch('{{ url_for('navbar') }}')  // Using Flask's url_for to get the correct route
+            .then(response => response.text())
+            .then(data => {
+              document.getElementById('navbar-container').innerHTML = data;
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="container mt-5">
+        <h1 class="mb-4">Image Search</h1>
+        <form method="POST" action="{{ url_for('search') }}" class="mb-3">
+            {{ form.hidden_tag() }}
+            <div class="input-group">
+                {{ form.search_query(class="form-control", placeholder="Search by tag or file name") }}
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+        <!-- Display photos -->
+        {% if photos %}
+            <div class="row">
+                {% for photo in photos %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" alt="{{ photo.filename }}" class="card-img-top">
+                        <div class="card-body">
+                            <p class="card-text">Tags: {% for tag in photo.tags %}{{ tag.name }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+                            <p class="card-text">Uploader: {{ photo.uploader.username }}</p>
+                            <form method="POST" action="{{ url_for('delete_photo', photo_id=photo.id) }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                            <!-- Love/heart button -->
+                            <form method="POST" action="{{ url_for('heart_photo', photo_id=photo.id) }}" class="heart-form">
+                                {% if current_user and photo in current_user.hearts %}
+                                    <a href="#" class="heart-btn text-danger" data-photo-id="{{ photo.id }}"><i class="fas fa-heart fa-2x"></i></a>
+                                {% else %}
+                                    <a href="#" class="heart-btn text-dark" data-photo-id="{{ photo.id }}"><i class="far fa-heart fa-2x"></i></a>
+                                {% endif %}
+                                <span class="heart-count">{{ photo.hearts|length }}</span>
+                            </form>                                
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}            
+            </div>
+        {% endif %}
+
+        {% if flash_message %}
+            <div class="alert alert-info mt-3">
+                {{ flash_message }}
+            </div>
+        {% endif %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-eaQ8HlJqNl6U5lH6QxU5FJ5B/cz5gZMPswM8hTLeoqCWoSTSlZl/R3RCKI2DkO4" crossorigin="anonymous"></script>
+<script>
+     // Attach a click event handler to the heart icons
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.heart-btn').forEach(function (heartBtn) {
+            heartBtn.addEventListener('click', function (event) {
+                event.preventDefault(); 
+    
+                var photoId = heartBtn.dataset.photoId;
+    
+                fetch(heartBtn.closest('.heart-form').action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}) 
+                })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                
+                    if (data.hearted) {
+                        // If hearted, update to solid heart
+                        heartBtn.innerHTML = '<i class="fas fa-heart fa-2x"></i>';
+                    } else {
+                        // If not hearted, update to regular heart
+                        heartBtn.innerHTML = '<i class="far fa-heart fa-2x"></i>';
+                    }
+    
+                    var heartCount = heartBtn.closest('.heart-form').querySelector('.heart-count');
+                    if (heartCount) {
+                        heartCount.innerText = data.hearts_count;
+                    }
+                });
+            });
+        });
+    });              
+</script>
+</body>
+</html>
